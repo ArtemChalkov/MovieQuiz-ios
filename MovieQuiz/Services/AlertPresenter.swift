@@ -24,9 +24,11 @@ class AlertPresenter {
             title: model.buttonText, //"Сыграть ещё раз",
             style: .default) { action in
                 
-                print(action, #line)
+                
                 
                 self.completion?()
+                
+                //self.restartGame()
             }
         
         alert.addAction(continueAction)
