@@ -7,6 +7,7 @@ final class MovieQuizViewController: UIViewController {
     private let questionFactory = QuestionFactory()
     private let alertPresenter = AlertPresenter()
     private var statisticsService: StatisticService = StatisticServiceImplementation()
+    private let reachability = Reachability()
     
     private var movies: [QuizQuestion] = []
     
@@ -36,7 +37,20 @@ final class MovieQuizViewController: UIViewController {
     
     private func nextQuestion() {
         
-        if questionFactory.copyMovies.isEmpty {
+        if reachability.isConnectedToNetwork() == false {
+            
+            let alertModel = AlertModel(title: "Что-то пошло не так(", message: "Невозможно загрузить данные", buttonText: "Попробовать еще раз")
+            alertPresenter.showQuizResult(model: alertModel, controller: self)
+            
+            alertPresenter.completion = { [weak self] in
+                //self?.restartGame()
+                self?.update()
+            }
+            return
+        }
+        
+        if questionFactory.copyMovies.isEmpty
+            {
             
             let model = GameRecord.init(questionsCount: moviesCount, validCount: count)
             statisticsService.update(model: model)
@@ -53,6 +67,7 @@ final class MovieQuizViewController: UIViewController {
             }
             return
         }
+        
         scoreLabel.text = "\(moviesCount - questionFactory.copyMovies.count + 1)/\(moviesCount)"
         
         currentMovie = questionFactory.requestNextQuestion()
@@ -64,16 +79,31 @@ final class MovieQuizViewController: UIViewController {
     }
     
     private func restartGame() {
+    
+        if reachability.isConnectedToNetwork() == false {
+            
+            let alertModel = AlertModel(title: "Что-то пошло не так(", message: "Невозможно загрузить данные", buttonText: "Попробовать еще раз")
+            alertPresenter.showQuizResult(model: alertModel, controller: self)
+            
+            alertPresenter.completion = { [weak self] in
+                //self?.restartGame()
+                self?.update()
+            }
+            return
+        }
         
-
         showActivityIndicator()
         questionFactory.loadData { [weak self] error in
             
             guard let self = self else { return }
             
             if error != nil {
-                let alertModel = AlertModel(title: "то-то пошло не так(", message: "Невозможно загрузить данные", buttonText: "Попробовать еще раз")
+                let alertModel = AlertModel(title: "Что-то пошло не так(", message: "Невозможно загрузить данные", buttonText: "Попробовать еще раз")
                 alertPresenter.showQuizResult(model: alertModel, controller: self)
+                
+                alertPresenter.completion = { [weak self] in
+                    self?.restartGame()
+                }
                 
                 return
             }
@@ -94,8 +124,6 @@ final class MovieQuizViewController: UIViewController {
             self.questionTextLabel.text = "Вопрос:"
             
             nextQuestion() //start 1 question
-            
-            
         }
         
        
@@ -115,7 +143,7 @@ final class MovieQuizViewController: UIViewController {
     }
     var isEnabled = true
     
-    //MARK: - Events
+    //MARK: - Actions
     @objc private func checkQuestionTapped(sender: UIButton) {
         
         if isEnabled == true {
@@ -128,7 +156,9 @@ final class MovieQuizViewController: UIViewController {
                     posterImageView.layer.borderColor = Colors.ypGreen.cgColor
                     posterImageView.layer.borderWidth = 5
                     
-                    count += 1
+                    if reachability.isConnectedToNetwork() == true {
+                        count += 1
+                    }
         
                 } else {
                     posterImageView.layer.borderColor = Colors.ypRed.cgColor
@@ -136,7 +166,7 @@ final class MovieQuizViewController: UIViewController {
                 }
             }
             
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                 self.isEnabled = true
                 self.nextQuestion()
             }
@@ -284,12 +314,6 @@ final class MovieQuizViewController: UIViewController {
         ])
         NSLayoutConstraint.activate([
             posterImageView.topAnchor.constraint(equalTo: questionTextLabel.bottomAnchor, constant: 20),
-            //posterImageView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -178),
-            //posterImageView.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 20),
-            //posterImageView.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -20),
-            
-            //posterImageView.widthAnchor.constraint(equalToConstant: 335),
-            //posterImageView.heightAnchor.constraint(equalToConstant: 502)
             posterImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor)
 
         ])
