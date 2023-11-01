@@ -27,8 +27,10 @@ final class MovieQuizViewController: UIViewController {
         setupConstraints()
         
         statisticsService.gameCount += 1
-
-        
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
         restartGame()
     }
     
@@ -74,7 +76,6 @@ final class MovieQuizViewController: UIViewController {
         
         self.questionLabel.text = currentMovie?.question
        
-        
         update()
     }
     
@@ -86,8 +87,8 @@ final class MovieQuizViewController: UIViewController {
             alertPresenter.showQuizResult(model: alertModel, controller: self)
             
             alertPresenter.completion = { [weak self] in
-                //self?.restartGame()
-                self?.update()
+                self?.restartGame()
+                //self?.update()
             }
             return
         }
