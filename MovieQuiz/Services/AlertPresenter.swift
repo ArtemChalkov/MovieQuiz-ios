@@ -22,11 +22,13 @@ class AlertPresenter {
         
         let continueAction = UIAlertAction.init(
             title: model.buttonText, //"Сыграть ещё раз",
-            style: .default) { action in
+            style: .default) { [weak self] action in
                 
-                print(action, #line)
+                guard let self else { return }
                 
                 self.completion?()
+                
+                //self.restartGame()
             }
         
         alert.addAction(continueAction)

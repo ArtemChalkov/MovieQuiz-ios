@@ -1,110 +1,23 @@
 import UIKit
 
+
 final class MovieQuizViewController: UIViewController {
     
     //Services
     private let questionFactory = QuestionFactory()
     private let alertPresenter = AlertPresenter()
     private var statisticsService: StatisticService = StatisticServiceImplementation()
+    private let reachability = Reachability()
     
-    
-    
-    private lazy var movies = questionFactory.questions
+    private var movies: [QuizQuestion] = []
     
     private var currentMovie: QuizQuestion?
     
     private lazy var moviesCount = movies.count
     
     private var count = 0 //Count of valid answers
-
-    //MARK: - Business Logic
     
-    private func restartGame() {
- 
-        moviesCount = movies.count //setup all questions
-        
-        questionFactory.copyMovies = movies //setup all movies in array
-        
-        count = 0 //count make null
-        
-        statisticsService.gameCount += 1
-        
-        statisticsService.store()
-        
-        nextQuestion() //start 1 question
-    }
-    
-    private func nextQuestion() {
-        
-
-        if questionFactory.copyMovies.isEmpty {
-            
-            let model = GameRecord.init(questionsCount: moviesCount, validCount: count)
-            statisticsService.update(model: model)
-            
-            let alertModel = AlertModel.init(
-                title: "Раунд окончен!",
-                message: statisticsService.message,
-                buttonText: "Сыграть ещё раз")
-                
-            
-            alertPresenter.showQuizResult(model: alertModel, controller: self)
-            
-            alertPresenter.completion = { [weak self] in
-                self?.restartGame()
-            }
-            return
-        }
-        
-        
-        scoreLabel.text = "\(moviesCount - questionFactory.copyMovies.count + 1)/\(moviesCount)"
-        
-        currentMovie = questionFactory.requestNextQuestion()
-        update()
-    }
-    
-    //MARK: - UI States
-    private func update() {
-        
-        if let question = currentMovie {
-            
-            posterImageView.layer.borderColor = UIColor.clear.cgColor
-            posterImageView.layer.borderWidth = 0
-            
-            let image = UIImage(named: question.image)
-            
-            posterImageView.image = image
-        }
-    }
-    var isEnabled = true
-    
-    //MARK: - Events
-    @objc private func checkQuestionTapped(sender: UIButton) {
-        
-        if isEnabled == true {
-            isEnabled = false
-            if let buttonTitle = sender.titleLabel?.text {
-                let movieTitle = currentMovie?.answer ?? ""
-                print(buttonTitle, movieTitle)
-                
-                if buttonTitle == movieTitle {
-                    posterImageView.layer.borderColor = Colors.ypGreen.cgColor
-                    posterImageView.layer.borderWidth = 5
-                    
-                    count += 1
-        
-                } else {
-                    posterImageView.layer.borderColor = Colors.ypRed.cgColor
-                    posterImageView.layer.borderWidth = 5
-                }
-            }
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                self.isEnabled = true
-                self.nextQuestion()
-            }
-        }
-    }
+    //private var gameCount = 0 //Count of games
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
@@ -114,16 +27,180 @@ final class MovieQuizViewController: UIViewController {
         setupConstraints()
         
         statisticsService.gameCount += 1
-        
-        nextQuestion()
     }
     
-    //Closure init
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        restartGame()
+    }
+    
+    //MARK: - Business Logic
+    
+    
+    private func nextQuestion() {
+        
+        if reachability.isConnectedToNetwork() == false {
+            
+            let alertModel = AlertModel(title: "Что-то пошло не так(", message: "Невозможно загрузить данные", buttonText: "Попробовать еще раз")
+            alertPresenter.showQuizResult(model: alertModel, controller: self)
+            
+            alertPresenter.completion = { [weak self] in
+                //self?.restartGame()
+                self?.update()
+            }
+            return
+        }
+        
+        if questionFactory.copyMovies.isEmpty
+            {
+            
+            let model = GameRecord.init(questionsCount: moviesCount, validCount: count)
+            statisticsService.update(model: model)
+            
+            let alertModel = AlertModel.init(
+                title: "Раунд окончен!",
+                message: statisticsService.message,
+                buttonText: "Сыграть ещё раз")
+
+            alertPresenter.showQuizResult(model: alertModel, controller: self)
+            
+            alertPresenter.completion = { [weak self] in
+                self?.restartGame()
+            }
+            return
+        }
+        
+        scoreLabel.text = "\(moviesCount - questionFactory.copyMovies.count + 1)/\(moviesCount)"
+        
+        currentMovie = questionFactory.requestNextQuestion()
+        
+        self.questionLabel.text = currentMovie?.question
+       
+        update()
+    }
+    
+    private func restartGame() {
+    
+        if reachability.isConnectedToNetwork() == false {
+            
+            let alertModel = AlertModel(title: "Что-то пошло не так(", message: "Невозможно загрузить данные", buttonText: "Попробовать еще раз")
+            alertPresenter.showQuizResult(model: alertModel, controller: self)
+            
+            alertPresenter.completion = { [weak self] in
+                self?.restartGame()
+                //self?.update()
+            }
+            return
+        }
+        
+        showActivityIndicator()
+        questionFactory.loadData { [weak self] error in
+            
+            guard let self = self else { return }
+            
+            if error != nil {
+                let alertModel = AlertModel(title: "Что-то пошло не так(", message: "Невозможно загрузить данные", buttonText: "Попробовать еще раз")
+                alertPresenter.showQuizResult(model: alertModel, controller: self)
+                
+                alertPresenter.completion = { [weak self] in
+                    self?.restartGame()
+                }
+                
+                return
+            }
+
+            self.hideActivityIndicator()
+            
+            movies = questionFactory.questions
+            
+            moviesCount = movies.count //setup all questions
+            
+            //questionFactory.copyMovies = movies //setup all movies in array
+            
+            self.count = 0 //count make null
+            self.statisticsService.gameCount += 1
+            self.statisticsService.store()
+            
+            self.questionLabel.text = currentMovie?.question
+            self.questionTextLabel.text = "Вопрос:"
+            
+            nextQuestion() //start 1 question
+        }
+        
+       
+    }
+   
+    
+    //MARK: - UI States
+    private func update() {
+        
+        if let question = currentMovie {
+            posterImageView.layer.borderColor = UIColor.clear.cgColor
+            posterImageView.layer.borderWidth = 0
+            question.loadImage(completion: { image in
+                 self.posterImageView.image = image
+            })
+        }
+    }
+    var isEnabled = true
+    
+    //MARK: - Actions
+    @objc private func checkQuestionTapped(sender: UIButton) {
+        
+        if isEnabled == true {
+            isEnabled = false
+            if let buttonTitle = sender.titleLabel?.text {
+                let movieTitle = currentMovie?.answer ?? ""
+                
+                
+                if buttonTitle == movieTitle {
+                    posterImageView.layer.borderColor = Colors.ypGreen.cgColor
+                    posterImageView.layer.borderWidth = 5
+                    
+                    if reachability.isConnectedToNetwork() == true {
+                        count += 1
+                    }
+        
+                } else {
+                    posterImageView.layer.borderColor = Colors.ypRed.cgColor
+                    posterImageView.layer.borderWidth = 5
+                }
+            }
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                self.isEnabled = true
+                self.nextQuestion()
+            }
+        }
+    }
+
+    private let activityIndicator: UIActivityIndicatorView = {
+        let activityIndicator = UIActivityIndicatorView()
+        activityIndicator.style = .large
+        activityIndicator.color = .white
+        return activityIndicator
+    }()
+    
+    private func showActivityIndicator() {
+        if !activityIndicator.isDescendant(of: view) {
+            view.addSubview(activityIndicator)
+        }
+        activityIndicator.startAnimating()
+        activityIndicator.isHidden = false
+        activityIndicator.center = view.center
+    }
+    
+    private func hideActivityIndicator() {
+        activityIndicator.isHidden = true
+        activityIndicator.stopAnimating()
+    }
+    
     private let questionTextLabel: UILabel = {
         let label = UILabel()
         label.text = "Вопрос:"
         label.font = UIFont(name: "YSDisplay-Medium", size: 20)
         label.textColor = Colors.ypWhite
+        //label.backgroundColor = .yellow
         label.translatesAutoresizingMaskIntoConstraints = false
         
         return label
@@ -182,12 +259,15 @@ final class MovieQuizViewController: UIViewController {
     private let posterImageView: UIImageView = {
         let imageView = UIImageView()
         imageView.contentMode = .scaleAspectFill
-        imageView.image = UIImage(named: "poster1")
+        //imageView.image = UIImage(named: "poster1")
         imageView.layer.cornerRadius = 15
         imageView.layer.borderWidth = 6
         imageView.clipsToBounds = true
-        imageView.layer.borderColor = Colors.ypRed.cgColor
+        imageView.layer.borderColor = UIColor.clear.cgColor
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        let screenBounds = UIScreen.main.bounds
+        imageView.heightAnchor.constraint(equalToConstant: screenBounds.height * 0.6).isActive = true
+        imageView.widthAnchor.constraint(equalToConstant: screenBounds.width * 0.8).isActive = true
         return imageView
     }()
     
@@ -214,6 +294,7 @@ final class MovieQuizViewController: UIViewController {
             scoreLabel.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
             scoreLabel.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -20)
         ])
+        
         NSLayoutConstraint.activate([
             yesButton.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: 0),
             yesButton.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 20),
@@ -234,12 +315,7 @@ final class MovieQuizViewController: UIViewController {
         ])
         NSLayoutConstraint.activate([
             posterImageView.topAnchor.constraint(equalTo: questionTextLabel.bottomAnchor, constant: 20),
-            posterImageView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -178),
-            posterImageView.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 20),
-            posterImageView.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -20),
-            
-            posterImageView.widthAnchor.constraint(equalToConstant: 335),
-            //posterImageView.heightAnchor.constraint(equalToConstant: 502)
+            posterImageView.centerXAnchor.constraint(equalTo: view.centerXAnchor)
 
         ])
     }

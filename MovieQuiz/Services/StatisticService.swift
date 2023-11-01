@@ -6,6 +6,8 @@
 //
 
 import Foundation
+// GameRecord(Model) -> BinaryObject(JSON) -> UserDefaults
+// UserDefaults -> BinaryObject(JSON) -> GameRecord(Model)
 
 protocol StatisticService {
     var message: String { get }
@@ -19,7 +21,7 @@ protocol StatisticService {
 }
 
 class StatisticServiceImplementation: StatisticService {
-    
+  
     var gameCount: Int {
         get {
             return UserDefaults.standard.integer(forKey: "GameCount")
@@ -27,7 +29,6 @@ class StatisticServiceImplementation: StatisticService {
         set {
             UserDefaults.standard.setValue(newValue, forKey: "GameCount")
         }
-        
     }
     
     var gameStatistic: GameRecord?
@@ -64,7 +65,7 @@ class StatisticServiceImplementation: StatisticService {
                 let record = try decoder.decode(GameRecord.self, from: recordData)
                 return record
             } catch {
-                print(error.localizedDescription)
+               
             }
         }
         return nil
@@ -92,7 +93,7 @@ class StatisticServiceImplementation: StatisticService {
             UserDefaults.standard.set(currentData, forKey: "Record")
             
         } catch {
-            print(error.localizedDescription)
+            
         }
     }
 }
