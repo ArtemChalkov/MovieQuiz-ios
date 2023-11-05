@@ -31,6 +31,8 @@ class AlertPresenter {
                 //self.restartGame()
             }
         
+        alert.view.accessibilityIdentifier = "GameResults"
+        
         alert.addAction(continueAction)
         controller.present(alert, animated: true)
     }
