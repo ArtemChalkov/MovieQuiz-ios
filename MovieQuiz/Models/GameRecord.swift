@@ -7,8 +7,6 @@
 
 import Foundation
 
-import UIKit
-
 struct GameRecord: Codable {
     //var gameCount: Int = 1 //kolichestvo igr
     var questionsCount: Int = 10 //kolichestvo vseh voprosov

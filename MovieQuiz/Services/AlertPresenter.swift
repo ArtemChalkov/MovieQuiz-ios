@@ -5,8 +5,6 @@
 //  Created by Артем Чалков on 24.10.2023.
 //
 
-import Foundation
-
 import UIKit
 
 class AlertPresenter {
@@ -27,9 +25,9 @@ class AlertPresenter {
                 guard let self else { return }
                 
                 self.completion?()
-                
-                //self.restartGame()
             }
+        
+        alert.view.accessibilityIdentifier = "GameResults"
         
         alert.addAction(continueAction)
         controller.present(alert, animated: true)
