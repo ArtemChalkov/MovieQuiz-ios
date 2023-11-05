@@ -7,15 +7,6 @@
 
 import Foundation
 
-import UIKit
-
-//struct QuizQuestion {
-//    let image: String
-//    let text: String
-//    let correctAnswer: Bool
-//}
-
-
 struct MostPopularMovies: Codable {
     let errorMessage: String
     let items: [MostPopularMovie]

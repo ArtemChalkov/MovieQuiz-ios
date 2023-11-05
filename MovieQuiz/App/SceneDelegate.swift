@@ -13,9 +13,15 @@ final class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         
         window = UIWindow.init(windowScene: scene as! UIWindowScene)
         
-        let moviewQuizController = MovieQuizViewController()
         
-        window?.rootViewController = moviewQuizController //movie-ios
+        let movieQuizController = MovieQuizViewController()
+        let movieQuizPresenter = MovieQuizPresenter()
+        
+        movieQuizController.presenter = movieQuizPresenter
+        movieQuizPresenter.viewController = movieQuizController
+        
+        
+        window?.rootViewController = movieQuizController //movie-ios
         window?.makeKeyAndVisible()
         
     }

@@ -5,8 +5,6 @@
 //  Created by Артем Чалков on 31.10.2023.
 //
 
-import UIKit
-
 import Foundation
 import SystemConfiguration
 
@@ -35,11 +33,3 @@ public class Reachability {
         return (isReachable && !needsConnection)
     }
 }
-
-//if Reachability.isConnectedToNetwork() == true {
-//    print("Connected to the internet")
-//    //  Do something
-//} else {
-//    print("No internet connection")
-//    //  Do something
-//}
